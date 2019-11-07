@@ -1,0 +1,92 @@
+---
+layout: post
+title: "Fail2ban"
+date: 2017-09-08 00:00:00 -0400
+comments: true
+categories:
+---
+This site is hosted using Amazon Web Services. I don't have much preference with cloud providers, but I needed some experience with ec2 instances. Amazon's security groups have made securing things pretty trivial, especially with my simple use case.
+
+
+Seeing a growing emphasis on security in the last decade has been really interesting. I always viewed it as a checkbox for job qualification, as opposed to a career track (In a similar argument to how, a building contractor should be naturally qualified at securing a structure, since he knows how they are from the inside-out) so I used to question the need for "Security Teams." Later on I learned it's necessary for resource management and ensuring product delivery.
+
+<!-- more -->
+
+After the first week of running this site, I checked my access logs to find thousands of shameless requests for admin pages:
+```
+[...]
+  78.9.52.27 - - [05/Sep/2017:06:27:09 +0000] "HEAD http://18.221.2.236:80/sql/phpmyadmin2/ HTTP/1.1" 404 288 "-" "Mozilla/5.0 Jorgee"
+  78.9.52.27 - - [05/Sep/2017:06:27:09 +0000] "HEAD http://18.221.2.236:80/sql/phpMyAdmin2/ HTTP/1.1" 404 288 "-" "Mozilla/5.0 Jorgee"
+  78.9.52.27 - - [05/Sep/2017:06:27:10 +0000] "HEAD http://18.221.2.236:80/sql/phpMyAdmin/ HTTP/1.1" 404 288 "-" "Mozilla/5.0 Jorgee"
+  78.9.52.27 - - [05/Sep/2017:06:27:10 +0000] "HEAD http://18.221.2.236:80/db/myadmin/ HTTP/1.1" 404 288 "-" "Mozilla/5.0 Jorgee"
+  78.9.52.27 - - [05/Sep/2017:06:27:10 +0000] "HEAD http://18.221.2.236:80/db/webadmin/ HTTP/1.1" 404 288 "-" "Mozilla/5.0 Jorgee"
+  78.9.52.27 - - [05/Sep/2017:06:27:10 +0000] "HEAD http://18.221.2.236:80/db/dbweb/ HTTP/1.1" 404 288 "-" "Mozilla/5.0 Jorgee"
+[...]
+```
+
+Check out that user agent: "Mozilla/5.0 Jorgee"
+
+
+User agents are used for content negotiation with a website. They give the site you are accessing information about your device/browser.
+Here's what's logged when I open my homepage with my Google Pixel:
+
+```
+  174.205.9.211 - - [08/Sep/2017:11:34:56 -0400] "GET / HTTP/1.1" 200 622 "-" "Mozilla/5.0 (Linux; Android 7.1.2; Pixel Build/NHG47Q) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/ Mobile Safari/537.36"
+  174.205.9.211 - - [08/Sep/2017:11:34:56 -0400] "GET /images/5.jpg HTTP/1.1" 200 32040 "http://igou.io/" "Mozilla/5.0 (Linux; Android 7.1.2; Pixel Build/NHG47Q) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/ Mobile Safari/537.36"
+```
+
+I'm going to guess the most common usecase is deciding between serving a client a mobile or desktop webpage. So what is this "Jorgee" that's flooding my logs? A quick google search revealed it's a well known vulnerability scanner - looks like they're just blindly sweeping through subnets trying to get hits on nodes default settings and admin logins still in place.
+
+
+This is more successful than expected - give the <a href="https://en.wikipedia.org/wiki/The_Cuckoo%27s_Egg">Cuckoo's Egg</a> by <a href="https://en.wikipedia.org/wiki/Clifford_Stoll">Clifford Stoll</a> a read. This book gives some awesome insight into understanding the steps of compromising a server stringing together Social Engineering and Privledge Escalation.
+
+Unrelated: Stoll is an awesome guy that loves science. Last time I checked he was selling Klein bottles out of his basement and teaching 8th graders. I bought one from him a few years ago and he send me a bunch of selfies with my order. <a href="http://kleinbottle.com/"> Check out his store. </a>
+
+<img src=/images/cliff.jpg>
+
+
+Anyway,
+
+Overall this is pretty normal - well, in the context of the Internet. If I walked around a suburb checking every lock/door combination was still the manufacturers default, I'd probably run into trouble pretty quickly. But, with websites it's pretty easy to do this and have no repercussions. So much that dealing with it is a normal part of operations.
+
+
+<a href="https://fail2ban.org">Fail2ban</a> is a tool that scans log files (Such as your apache access logs) and bans IPs when they show signs of malicious activity. The most common mention I see for this is brute-forcing ssh logins. If you've ever configured anything that faces the internet, you've probably heard of Fail2ban. I felt like writing about it since the most I have ever heard about it is "You should install it" and not "Here is what you can do with it."
+
+
+Their website kind of sucks. The readme and official manual are pretty short (Last updated in 2013) and most of it are just third party links for advice. But, if you read through the configuration files it's pretty easy to guess how it works. Digitalocean has some pretty up to date guides as well. I derived my setup from <a href="https://www.digitalocean.com/community/tutorials/how-to-protect-ssh-with-fail2ban-on-ubuntu-14-04"> this one</a>.
+
+
+Once again: bans are based off your logs. If you're a security professional, this is an important thing to note. These malicious hosts are going to be able to make a few requests before they get banned (Even though in my case they're all going to be 404s). If you don't want any requests like these granted in the first place, you need to find another solution. Apache can be configured to ignore certain user agents. I found an example in this context <a href="https://blog.paranoidpenguin.net/2017/04/jorgee-goes-on-a-rampage/">here</a> .
+
+Fail2ban comes with a filter for known malicious user agents, but it doesn't contain the one I'm getting hit with every 10 minutes. This filter is just hardcoded, so I'm currently working on a solution that flags based on the url requested and not just the agent. I simply added the user agent I wanted, and gave it a 5 strike rule. The logs look something like this:
+```
+[...]
+  2017-09-06 15:45:57,266 fail2ban.filter         [8095]: INFO    [apache-badbots] Found 51.175.36.126
+  2017-09-06 15:45:57,394 fail2ban.filter         [8095]: INFO    [apache-badbots] Found 51.175.36.126
+  2017-09-06 15:45:57,522 fail2ban.filter         [8095]: INFO    [apache-badbots] Found 51.175.36.126
+  2017-09-06 15:45:57,651 fail2ban.filter         [8095]: INFO    [apache-badbots] Found 51.175.36.126
+  2017-09-06 15:45:57,780 fail2ban.filter         [8095]: INFO    [apache-badbots] Found 51.175.36.126
+  2017-09-06 15:45:57,903 fail2ban.actions        [8095]: NOTICE  [apache-badbots] Ban 51.175.36.126
+[...]
+```
+
+
+Within 24 hours, I got a pretty good amount of hits:
+```
+  >iptables -nL
+  [...]
+  Chain f2b-apache-badbots (1 references)
+  target     prot opt source               destination
+  REJECT     all  --  47.149.221.45        0.0.0.0/0            reject-with icmp-port-unreachable
+  REJECT     all  --  82.215.181.38        0.0.0.0/0            reject-with icmp-port-unreachable
+  [etc - 25ish lines]
+  REJECT     all  --  85.11.74.117         0.0.0.0/0            reject-with icmp-port-unreachable
+  REJECT     all  --  51.175.36.126        0.0.0.0/0            reject-with icmp-port-unreachable
+  RETURN     all  --  0.0.0.0/0            0.0.0.0/0
+  [...]
+```
+This is okay for now. I have alerts setup to email me a report of each ban, including a WHOIS - this is the ultimate reason why I didn't blacklist requests like these, there are some really cool libraries available for RLang that I use to play with this data.
+
+<img src=/images/rstudio_example.png>
+
+Not sure what I'm going to do with it. I'll probably build some heatmaps and graphs. I will ponder this over my weekend while my inbox is spammed with logs.

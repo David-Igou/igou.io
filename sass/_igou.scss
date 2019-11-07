@@ -1,0 +1,160 @@
+//This is the main YinYang css file.
+
+html {
+  height: 100%;
+}
+
+
+.container {
+  position: relative;
+  min-height: 100%;
+
+	.credit-box {
+		color: #AAA;
+		font-size: .8em;
+		position: fixed;
+		bottom: 20px;
+		left: 40px;
+		a {
+			color: inherit;
+			text-decoration: underline;
+		}
+	}
+	.mid-col {
+		position: absolute;
+        right: 0;
+        min-height: 100%;
+		width: 90%;
+		#banner {
+			width: 100%;
+			small {
+			margin-right: 70px;
+			}
+		}
+		footer.inner {
+		  text-align: center;
+		  margin: 0px 70px 0px 40px;
+		  width: 60%;
+      p {
+        font-size: 0.8em;
+        margin-bottom: 5px;
+      }
+		}
+		.mid-col-container {
+			padding: 20px 70px 0px 40px;
+			#content {
+				width: 60%;
+        .featured {
+          max-width: 100%;
+          height: auto;
+        }
+        .share_icon_group {
+          margin-top: -50px;
+          .share_icon {
+            float: right;
+            margin-left: 20px;
+          }
+        }
+				article {
+					border-top: none;
+					.title {
+						margin-left: 0px;
+					}
+          .post-date {
+            text-align: right;
+            margin-top: -34px;
+            color: #9FB4CC;
+            font-size: 0.9em;
+          }
+					.entry-content {
+						margin-left: 0px;
+						.gist .gist-file .gist-data {
+							.line_numbers {
+								line-height: inherit;
+							}
+							pre {
+								line-height: inherit;
+							}
+						}
+						h2 {
+							font-size: 1.3em;
+							color: #dc322f;
+							border-bottom: none;
+						}
+						h2::before {
+							border-bottom: none;
+						}
+						blockquote {
+							border-left: 5px solid $highlight;
+							background: #FCFCFC;
+						}
+						table {
+							line-height: 1.2em;
+							td {
+								text-align: left;
+							}
+						}
+					}
+					.meta {
+						position: relative;
+						float: right;
+						top: 0px;
+						color: #555;
+						text-align: right;
+						width: auto;
+						.date::before {
+							color: #555;
+							position: relative;
+							margin-right: 10px;
+						}
+						.tags::before {
+							color: #999;
+							position: relative;
+							margin-right: 10px;
+              font-size: 0.9em;
+						}
+            .tags {
+              font-size: 15px;
+            }
+					}
+				}
+			}
+		}
+		footer {
+			width: 100%;
+		}
+	}
+
+	.left-col {
+		width: 10%;
+		position: fixed;
+		.intrude-less {
+			width: 80%;
+		}
+		#header {
+			width: 100%;
+			padding: 0% 0% 0% 10%;
+      text-align: left;
+			#main-nav {
+        text-align: right;
+				margin: 10px 0;
+			}
+      .profile-container {
+        bottom: 10%;
+        left: 10%;
+        right: 10%;
+        .site-title {
+          text-align: center;
+          margin-top: 20px;
+          margin-bottom: 10px;
+        }
+        .site-subtitle {
+          text-align: center;
+          line-height: 1.4em;
+          width: 80%;
+          padding-left: 10%;
+        }
+      }
+			}
+		}
+	}

@@ -1,0 +1,58 @@
+---
+layout: post
+title: "Kubernetes"
+date: 2018-03-12 00:00:00 -0400
+comments: true
+categories:
+---
+
+Learning these new hip container orchestration tools can be intimidating. I remember learning OpenShift the first time and slamming my face against the keyboard for days as my installer would fail 35 minutes out of an hour in. Learning these tools can also be cumbersome for us who self practice if you use a cloud service.
+
+<!-- more -->
+
+I'm not sure when things changed, but spinning up a single node k8 instance is pretty easy these days. I ran this on an t2.medium running Ubuntu to save a few pennies.
+
+
+
+``` bash
+  #Install Docker
+  apt-get update
+  apt-get install -qy docker.io
+
+  #Install Kube repos
+  apt-get install -y apt-transport-https
+  curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+  echo "deb http://apt.kubernetes.io/ kubernetes-xenial main"  | sudo tee -a /etc/apt/sources.list.d/kubernetes.list
+
+  #K8 packages
+  apt-get install kubelet kubeadm kubernetes-cni
+
+  #Init - pass --pod-network-cidr=10.244.0.0/16 to use flannel for your pod network
+  kubeadm init #--pod-network-cidr=10.244.0.0/16
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+  sysctl net.bridge.bridge-nf-call-iptables=1 #optional?
+
+  kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/v0.9.1/Documentation/kube-flannel.yml
+
+  #taint master so you can run pods on it - or add a worker node.
+  kubectl taint nodes --all node-role.kubernetes.io/master-
+
+  #check if everything burned down
+  kubectl get all --all-namespaces
+```
+
+If nothing burned down, we can try out a test application. I have a personal favorite:
+
+``` bash
+  #At this point I alias'd oc and kubectl
+  kubectl run hello-openshift openshift/hello-openshift:latest
+  kubectl describe pod hello-7f788bf94c-nptb6 | grep -e IP -e Port
+```
+
+Toss a curl at IP:Port and be greeted with "Hello OpenShift!"
+
+This is pretty bare bones - but it's great for experimenting and breaking stuff.

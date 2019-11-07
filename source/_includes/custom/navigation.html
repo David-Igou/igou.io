@@ -1,0 +1,12 @@
+<a href="{{ root_url }}/">David Igou</a> <br>
+<br>
+<a href="{{ root_url }}/blog">Blog</a> <br>
+<a href="{{ root_url }}/archives">Archive</a> <br>
+<a href="{{ root_url }}/contact">Contact</a> <br>
+<a href="{{ root_url }}/dale">Dale</a> <br>
+<br>
+<ul id="recent_posts">
+  {% for post in site.posts limit: site.recent_posts %}
+      <a href="{{ root_url }}{{ post.url }}">{{ post.title }}</a> <br>
+  {% endfor %}
+</ul>

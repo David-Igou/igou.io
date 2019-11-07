@@ -1,0 +1,9 @@
+
+{% include head.html %}
+
+<body><center>
+  <div id="content" class="article-inner">{{ content | expand_urls: root_url }}</div><br>
+  <footer id="footer" class="inner">{% include footer.html %}</footer>
+  {% include after_footer.html %}
+</center></body>
+</html>

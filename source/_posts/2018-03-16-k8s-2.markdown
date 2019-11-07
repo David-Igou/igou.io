@@ -1,0 +1,267 @@
+---
+layout: post
+title: "Kubernetes-2"
+date: 2018-03-16 00:00:00 -0400
+comments: true
+categories:
+---
+
+<h3>Accessing the Kubernetes Dashboard</h3>
+
+Not of much use right now, but simple to set up:
+
+``` bash
+kubectl create -f https://git.io/kube-dashboard
+kubectl proxy
+Starting to serve on 127.0.0.1:8001
+ssh -L 8001:127.0.0.1:8001 -N <hostname>
+```
+
+<!-- more -->
+
+Access depends on your hosting, there could be more or less steps. This is in the context of AWS.
+
+After this create a service account. This yaml is saved to files and then invoked with kubectl create -f x.yaml
+
+
+``` yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-user"
+  namespace: kube-system
+```
+
+Grant cluster roles:
+
+``` yaml
+    apiVersion: rbac.authorization.k8s.io/v1beta1
+    kind: ClusterRoleBinding
+    metadata:
+      name: admin-user
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cluster-admin
+    subjects:
+    - kind: ServiceAccount
+      name: admin-user
+      namespace: kube-system
+```
+
+Then grab your token:  `kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}')`
+
+<img src=/images/k8-1.png>
+
+Paste it into the login and check out that dashboard.
+
+<img src=/images/k8-2.png>
+
+I pulled these steps out of the <a href="https://github.com/kubernetes/dashboard/wiki/Creating-sample-user">Kubernetes Dashboard wiki on github.</a>
+
+This isn't very relivant to what I'm doing - but I wanted to include this, because in OpenShift it's more streamlined and this confused me at first.
+
+<h3>Setting up an internal Docker registry</h3>
+
+I don't have a fancy storage solution. I literally just threw another physical block of storage on my instance and my persistent volumes are based on that. This has its limitations, but here I don't really mind. Kubernetes supports a ton of other options.
+
+First: Let's make some storage objects. hostPath is just a 100gb block device I mounted on /mnt/data.
+
+Storage Class:
+``` yaml
+  kind: StorageClass
+  apiVersion: storage.k8s.io/v1
+  metadata:
+    name: local-fast
+  provisioner: kubernetes.io/no-provisioner
+  volumeBindingMode: WaitForFirstConsumer
+```
+
+Persistent Volume:
+
+``` yaml
+  kind: PersistentVolume
+  apiVersion: v1
+  metadata:
+    name: pv-registry
+    labels:
+      type: local
+  spec:
+    capacity:
+      storage: 5Gi
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: local-fast
+    hostPath:
+      path: "/mnt/data"
+```
+
+Persistent Volume Claim:
+
+``` yaml
+  kind: PersistentVolumeClaim
+  apiVersion: v1
+  metadata:
+    name: registry-claim
+    namespace: default
+  spec:
+    accessModes:
+      - ReadWriteOnce
+    storageClassName: local-fast
+    resources:
+      requests:
+        storage: 5Gi
+```
+
+Run a `kubectl create -f` on these files and then `kubectl get pvc registry-claim` should return something like this:
+
+```
+  NAME             STATUS    VOLUME        CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+  registry-claim   Bound     pv-registry   5Gi        RWO            local-fast     2h
+```
+
+So, what did we do here? In summary, a PersistentVolume is a cluster resource that captures the details of the implementation of a said storage. Storage is requested by users via a PersistentVolumeClaim, providing a layer of abstraction. Since PersistentVolumes can have varying properties and users can have a variety of needs, StorageClasses are needed to govern how that is handled. I suggest giving the docs on <a href="https://kubernetes.io/docs/concepts/storage/volumes/">Storage Volumes</a> , <a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/">Persistent Volumes</a>, and <a href="https://kubernetes.io/docs/concepts/storage/storage-classes"> Storage Classes</a> read, because my usage is pretty minimal.
+
+Now that we have storage, we can deploy the registry from a template. We need to create two services and a deployment:
+
+Registry Service:
+``` yaml
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: registry
+    labels:
+      app: registry
+  spec:
+    ports:
+      - port: 5000
+        targetPort: 5000
+        nodePort: 30400s
+        name: registry
+    selector:
+      app: registry
+      tier: registry
+    type: NodePort
+```
+
+  Registry UI Service
+
+``` yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry-ui
+  labels:
+    app: registry
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: registry
+  selector:
+    app: registry
+    tier: registry
+  type: NodePort
+```
+
+Registry Deployment
+
+``` yaml
+  ---
+  apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    name: registry
+    labels:
+      app: registry
+  spec:
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: registry
+          tier: registry
+      spec:
+        containers:
+        - image: registry:2
+          name: registry
+          volumeMounts:
+          - name: docker
+            mountPath: /var/run/docker.sock
+          - name: registry-persistent-storage
+            mountPath: /var/lib/registry
+          ports:
+          - containerPort: 5000
+            name: registry
+        - name: registryui
+          image: hyper/docker-registry-web
+          ports:
+          - containerPort: 8080
+          env:
+          - name: REGISTRY_URL
+            value: http://localhost:5000/v2
+          - name: REGISTRY_NAME
+            value: cluster-registry
+        volumes:
+        - name: docker
+          hostPath:
+            path: /var/run/docker.sock
+        - name: registry-persistent-storage
+          persistentVolumeClaim:
+            claimName: registry-claim
+```
+
+
+I based this off <a href="https://github.com/kenzanlabs/kubernetes-ci-cd">Kenzalab's</a> implementation with some adjustments, as theirs is in the context of Minikube.
+
+Context: Services are a gateway of communication for pods, Deployments are configurations to how they're launched. I'll be going into detail about how these work in later posts. For now, just do a kubectl get svc and pay attention to this part - Just like in docker, the PORT(S) is just an internal to external translation.
+
+``` bash
+  NAME           TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+  registry       NodePort    hmm   <none>        5000:30400/TCP   5h
+  registry-ui    NodePort    hmm   <none>        8080:30473/TCP   3h
+```
+
+To use our new registry:
+
+``` bash
+  # docker build -t localhost:30400/nickbot:latest -f Dockerfile .
+  Sending build context to Docker daemon 15.36 kB
+  Step 1/6 : FROM python:2
+   ---> cfa3161efd74
+  Step 2/6 : WORKDIR /usr/src/app
+   ---> Using cache
+   ---> 8d2f991614c0
+  Step 3/6 : COPY requirements2.txt ./
+   ---> Using cache
+   ---> 33aa1214260b
+  Step 4/6 : RUN pip install --no-cache-dir -r requirements2.txt
+   ---> Using cache
+   ---> 8647c88a118f
+  Step 5/6 : COPY . .
+   ---> Using cache
+   ---> 4bcf913f219c
+  Step 6/6 : CMD python ./nickbot.py
+   ---> Using cache
+   ---> 42acffa92220
+  Successfully built 42acffa92220
+  # docker push localhost:30400/nickbot:latest
+  The push refers to a repository [localhost:30400/nickbot]
+  cc44c1f8a166: Pushed
+  04c0922272a7: Pushed
+  71199da94439: Pushed
+  f85378f0ab68: Pushed
+  25a515d83928: Pushed
+  1582dbfbe400: Pushed
+  4e32c2de91a6: Pushed
+  6e1b48dc2ccc: Pushed
+  ff57bdb79ac8: Pushed
+  6e5e20cbf4a7: Pushed
+  86985c679800: Pushed
+  8fad67424c4e: Pushed
+  latest: digest: sha256:6d183e40c1214314b166822a204ccacda29930ec0da1c86cebcb63872c313b71 size: 2844
+```
+Good ol' Korasi on the chips.

@@ -1,0 +1,31 @@
+---
+layout: post
+title: "Plotting banned hosts"
+date: 2017-09-15 00:00:00 -0400
+comments: true
+categories:
+---
+I've had some extra time this week. I made a quick and dirty way to automatically plot nodes I ban from this site. This has been done before and the code is public, I'll probably check out those examples next week to compare. I added an extra action to Fail2ban to append each IP to a text file. I have an hourly cronjob generating a new plot and throwing it into html/images/. Part of it calls on this Rscript:
+
+``` r
+  library("rgeolocate")
+  library("stringr")
+  library("rworldmap")
+
+  ipVector <- strsplit(readLines("banned.txt"), '\n')
+  list <- ip_api(ipVector, delay = TRUE)
+  newmap <- getMap(resolution = "li")
+
+  png(file = 'plot.png', width=992, height=553, res=45)
+
+  plot(newmap)
+  points(list$longitude, list$latitude, col = "red", pch=10)
+  dev.off()
+```
+<!-- more -->
+
+There is room to improve the quality and presentation of these - display settings are normally taken care of by RStudio, via a script it's all manual. There are other libraries available for plotting world maps out there, but they require a lot more time investment to get working how I want. The generated image:
+
+<img src=/images/plot.png>
+
+This nano instance had some issues compiling the dependencies for the libraries I used due to RAM limitations. I worked around this by creating another volume, attached/formatted/mounted as a swap partition, and it worked. AWS is kinda cool.

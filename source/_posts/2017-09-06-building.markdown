@@ -1,0 +1,73 @@
+---
+layout: post
+title: "Building this site [Legacy]"
+date: 2017-09-06 00:00:00 -0400
+comments: true
+categories:
+---
+
+This is no longer relevant.
+
+
+I have no idea how to make a website. I considered reading into best practices and learning whatever web people do, but making things up as I go along is a lot more interesting.
+The only webserver experience I have is the occasional IT exam question, and most of that is the equivalent of hitting a switch. So, everything here is subject to change any time.
+
+
+Most things I'm interested in sharing are pretty reasonable by hand - I don't need any fancy databases or dynamic pages, and I also don't want to re-learn some tool every time I haven't touched things in awhile. This wasn't a big deal until the idea of maintaining a blog came up. I write most pages on my personal laptop and use a small Ansible playbook to synchronize the two. Currently this is pretty basic:
+
+<!-- more -->
+
+```
+  [...]
+  hosts: igou.io
+  tasks:
+    - name: install latest version of apache
+      package: name=httpd state=latest
+      notify:
+      - restart apache
+
+    - name: sync
+      synchronize:
+        src: html
+        dest: /var/www/
+
+    - name: update blog sidebar
+      command: generate_site.sh
+  [...]
+```
+
+Few things omitted. Not sure if the command module or script is the best choice - I've seen examples floating around using both. I'll figure this out later.
+
+
+Blog pages are based off a pretty basic template. Most parts are static. This page is a big table which allows a hacky sort of sidebar. This works pretty well for me. I wanted to have the latest posts listed in ascending order. This is currently done using a bash script that spits the directory into sed.
+
+```
+  #!/bin/bash
+  #By David Igou
+
+  cd /var/www/html/blog/
+
+  for i in *.html;
+  do
+    sed -i '/^<!--startgen-->/,/^<!--endgen-->/{//!d}' $i
+  done
+
+  files=$(ls -1 *-*.html)
+  files=($files)
+  for i in *.html;
+  do
+    for x in "${files[@]}"
+    do
+      title=$( cat $x | grep -m 1 "<h1>" | sed 's/<h1>//' | sed 's/<\/h1>//' )
+      sed -i "/^<!--startgen-->$/a <a href=$x>$title<\/a><br>" $i
+    done
+  done
+
+  ln -fs ${files[-1]} index.html
+
+  exit
+```
+
+This inserts references to blog pages into the sidebar. I symlink index.html and the most recent post.
+
+We'll see where I go from here.
