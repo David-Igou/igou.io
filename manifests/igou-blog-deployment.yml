@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: igou
+  name: igou-website
+  labels:
+    igou-app: website
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      igou-app: website
+  template:
+    metadata:
+      labels:
+        igou-app: website
+    spec:
+      containers:
+      - env:
+        image: quay.io/igou/igou.io-nginx:latest
+        imagePullPolicy: Always
+        name: igou-website
+        ports:
+        - containerPort: 80
+        livenessProbe:
+          httpGet:
+            scheme: HTTP
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          timeoutSeconds: 30

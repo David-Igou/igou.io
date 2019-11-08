@@ -1,0 +1,19 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    ingress.kubernetes.io/protocol: https
+    ingress.kubernetes.io/redirect-entry-point: https
+  labels:
+    igou-app: website
+  name: igou-website
+  namespace: igou
+spec:
+  rules:
+  - host: websitetest.igou.io
+    http:
+      paths:
+      - backend:
+          serviceName: igou-website
+          servicePort: 80
+
