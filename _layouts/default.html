@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	{%- include head.html -%}
+</head>
+<body>
+	<main class="container">
+		<section class="about">
+			<img src="{{ "/assets/portfolio.png" | relative_url }}" alt="{{ site.plainwhite.name }}">
+			<h2><a href="{{ root_url }}/">{{ site.plainwhite.name }}<a></h2>
+                        <br>
+                        <a href="{{ root_url }}/blog">Blog</a> 
+                        <a href="{{ root_url }}/archives">Archive</a> <br>
+                        <a href="{{ root_url }}/contact">Contact</a> <br>
+                        <a href="{{ root_url }}/dale">Dale</a> <br>
+
+			<ul class="social">
+                {%- if site.plainwhite.social_links.github -%}
+				<a href="https://github.com/{{ site.plainwhite.social_links.github }}"><li><i class="icon-github-circled"></i></li></a>
+                {%- endif -%}
+                {%- if site.plainwhite.social_links.linkedIn -%}
+				<a href="https://www.linkedin.com/{{ site.plainwhite.social_links.linkedIn }}"><li><i class="icon-linkedin-squared"></i></li></a>
+                {%- endif -%}
+                {%- if site.plainwhite.social_links.twitter -%}
+                <a href="https://twitter.com/{{ site.plainwhite.social_links.twitter }}"><li><i class="icon-twitter-squared"></i></li></a>
+                {%- endif -%}
+			</ul>
+                {%- if page.layout == "post" -%}
+		{% include navigation.html %}
+                {%- endif -%}
+		</section>
+		<section class="content">
+			{{ content }}
+		</section>
+	</main>
+	{%- if site.plainwhite.analytics_id -%}
+	<script async src="https://www.googletagmanager.com/gtag/js?id={{ site.plainwhite.analytics_id }}"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag() { dataLayer.push(arguments); }
+		gtag('js', new Date());
+
+		gtag('config', '{{ site.plainwhite.analytics_id }}');
+	</script>
+	{%- endif -%}
+</body>
+</html>

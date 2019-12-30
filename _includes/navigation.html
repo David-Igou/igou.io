@@ -1,0 +1,3 @@
+{% for post in site.posts limit: site.recent_posts %}
+<li style="list-style-type:none;padding:10px 0 0 0;line-height:18px" ><a href="{{ root_url }}{{ post.url }}">{{ post.title }}</a></li>
+{% endfor %}

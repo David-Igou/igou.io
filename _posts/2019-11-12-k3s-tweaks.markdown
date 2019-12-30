@@ -1,0 +1,263 @@
+---
+layout: post
+date: 2019-11-12
+title: "k3s tweaks"
+categories: [k3s, kubernetes, aws]
+---
+
+
+I took some time at the end of this year to do a serious rebuild of my homelab. My philisophy on homelabbing differs slightly from others - I do not mind an AWS cost under $30 in exchange for no costs in the form of expensive equiptment, space, power bills, and noise complaints from my wife. My requirements were simple: minimum configuration, low compute requirements, and the ability to tear things down/back up quickly so I can break stuff.
+
+k3s met every requirement I had, with so much out of the box functionality I was able to simply point a wildcard domain to an Elastic IP and freely create/destroy my clusters. All while deploying on 4 t2.nanos or micros ($24-40/m). Some of my colleagues might say that's a lot, but avoiding many of the non-monitary costs of physical homelabs makes that worth it to me.
+
+Due to plans to remove cloudprovider plugins from Kubernetes core (They have alreavy been removed in k3s) - Here is how adding this functionality be handed in the future:
+
+# EBS CSI Plugin (Storage)
+
+If you want dynamically provisioned EBS. You will need to deploy the [CSI Controller](https://github.com/kubernetes-sigs/aws-ebs-csi-driver/). The easiest way to do this is via Helm. Since k3s ships with Rancher's Helm Controller - You can define this via a manifest:
+
+k3s args required:
+
+```
+--kube-apiserver-arg cloud-provider=external --kube-apiserver-arg allow-privileged=true --kube-apiserver-arg feature-gates=CSINodeInfo=true,CSIDriverRegistry=true,CSIBlockVolume=true,VolumeSnapshotDataSource=true --kube-controller-arg cloud-provider=external --kubelet-arg feature-gates=CSINodeInfo=true,CSIDriverRegistry=true,CSIBlockVolume=true --disable-cloud-controller
+```
+Manifest:
+
+
+```yaml
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: aws-ebs-csi-driver
+  namespace: kube-system
+spec:
+  chart: https://github.com/kubernetes-sigs/aws-ebs-csi-driver/releases/download/v0.4.0/helm-chart.tgz
+  set:
+    enableVolumeScheduling: "true"
+    enableVolumeResizing: "true"
+    enableVolumeSnapshot: "true"
+  valuesContent: |-
+    nodeSelector:
+      "node-role.kubernetes.io/master": "true"
+```
+
+Additionally, the following IAM roles are required, unless you want to pass keys.. Which I don't know how to do.
+
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action" : [
+      "ec2:DescribeInstances",
+      "ec2:DescribeRegions",
+      "ec2:DescribeRouteTables",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeVolumes",
+      "ec2:CreateSecurityGroup",
+      "ec2:CreateTags",
+      "ec2:CreateVolume",
+      "ec2:ModifyInstanceAttribute",
+      "ec2:ModifyVolume",
+      "ec2:AttachVolume",
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:CreateRoute",
+      "ec2:DeleteRoute",
+      "ec2:DeleteSecurityGroup",
+      "ec2:DeleteVolume",
+      "ec2:DetachVolume",
+      "ec2:RevokeSecurityGroupIngress",
+      "ec2:DescribeVpcs"
+      ],
+      "Effect": "Allow",
+      "Resource": ["*"]
+    }
+  ]
+}
+```
+
+You can limit the scope of permissions to the node the plugin runs on if you want, but I allow it to be rescheduled on my other nodes.
+
+Storage class:
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: ebs-sc
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+```
+
+# aws-cloud-controller-manager
+
+k3s args required:
+
+```
+--disable-cloud-controller --kube-apiserver-arg cloud-provider=external --kube-controller-arg cloud-provider=external
+```
+
+To run this I simply cloned the [github repo](https://github.com/kubernetes/cloud-provider-aws) and built the binary via `make.` I used a simple dockerfile:
+
+```dockerfile
+FROM alpine:3.7
+
+RUN apk add --no-cache ca-certificates
+
+ADD aws-cloud-controller-manager /bin/
+
+CMD ["/bin/aws-cloud-controller-manager"]
+```
+
+And I deployed via this manifest:
+
+
+```yaml
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cloud-controller-manager
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:cloud-controller-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: cloud-controller-manager
+  namespace: kube-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    k8s-app: cloud-controller-manager
+  name: cloud-controller-manager
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      k8s-app: cloud-controller-manager
+  template:
+    metadata:
+      labels:
+        k8s-app: cloud-controller-manager
+    spec:
+      serviceAccountName: cloud-controller-manager
+      containers:
+      - name: cloud-controller-manager
+        # for in-tree providers we use k8s.gcr.io/cloud-controller-manager
+        # this can be replaced with any other image for out-of-tree providers
+        image: quay.io/igou/aws-cloud-controller-manager
+        command:
+        - /bin/aws-cloud-controller-manager
+        - --cluster-cidr=10.42.0.0/16
+      tolerations:
+      # this is required so CCM can bootstrap itself
+      - key: node.cloudprovider.kubernetes.io/uninitialized
+        value: "true"
+        effect: NoSchedule
+      # this is to have the daemonset runnable on master nodes
+      # the taint may vary depending on your cluster setup
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      # this is to restrict CCM to only run on master nodes
+      # the node selector may vary depending on your cluster setup
+      nodeSelector:
+        node-role.kubernetes.io/master: "true"
+```
+
+I don't use any of this plugins features so I don't actually use this but, good for referrence. Some IAM roles required.
+
+
+# cert-manager
+
+Helm Controller once again:
+
+Create CRDs:
+
+```
+kubectl apply --validate=false -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.12/deploy/manifests/00-crds.yaml
+```
+
+Deploy HelmChart:
+
+```yaml
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: cert-manager
+  namespace: kube-system
+spec:
+  chart: cert-manager
+  repo: https://charts.jetstack.io
+  targetNamespace: cert-manager
+```
+
+
+# Kubelet metrics
+
+Args:
+
+```
+--kubelet-arg authentication-token-webhook=true --kubelet-arg authorization-mode=Webhook
+```
+
+I had to adjust the permissions of my Prometheus serviceaccount (Using the Prometheus Operator):
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources:
+  - configmaps
+  - nodes/metrics
+  verbs: ["get"]
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+
+```
+
+With the following ServiceMonitor:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources:
+  - configmaps
+  - nodes/metrics
+  verbs: ["get"]
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+```
+
+These configurations were tested on k3s running on top of Ubuntu Server - implementations using k3OS are on the way.
