@@ -1,6 +1,5 @@
 config.*
 Rakefile
-Gemfile*
 _site/
 public/
 .sass-cache
