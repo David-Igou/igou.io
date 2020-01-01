@@ -239,25 +239,33 @@ rules:
 With the following ServiceMonitor:
 
 ```yaml
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRole
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
 metadata:
-  name: prometheus
-rules:
-- apiGroups: [""]
-  resources:
-  - nodes
-  - services
-  - endpoints
-  - pods
-  verbs: ["get", "list", "watch"]
-- apiGroups: [""]
-  resources:
-  - configmaps
-  - nodes/metrics
-  verbs: ["get"]
-- nonResourceURLs: ["/metrics"]
-  verbs: ["get"]
+  labels:
+    k8s-app: kubelet
+  name: kubelet
+  namespace: kube-system
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    honorLabels: true
+    interval: 60s
+    port: https-metrics
+    relabelings:
+    - sourceLabels:
+      - __metrics_path__
+      targetLabel: metrics_path
+    scheme: https
+    tlsConfig:
+      insecureSkipVerify: true
+  jobLabel: kubelet
+  namespaceSelector:
+    matchNames:
+    - kube-system
+  selector:
+    matchLabels:
+      k8s-app: kubelet
 ```
 
 These configurations were tested on k3s running on top of Ubuntu Server - implementations using k3OS are on the way.

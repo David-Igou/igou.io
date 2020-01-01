@@ -77,7 +77,7 @@ There are two solutions to this:
 
 This is a pretty cool workaround a coworker showed me:
 
-```
+```yaml
 # ansible-playbook aws_custom_route_dns.yml -i openshift_inventory
 
 - hosts: all
@@ -120,7 +120,7 @@ TL;DR:
 <br>
 
 This is supported out of the box and can be stood up automatically via the Openshift installer, provided the S3 exists and you provide the key or have the correct IAM roles in place
-```
+```ini
 [OSEv3:vars]
 # AWS Registry Configuration
 openshift_hosted_manage_registry=true
@@ -139,7 +139,7 @@ openshift_hosted_registry_replicas=3
 ```
 
 The generated storage section of the registry configuration looks like this:
-```
+```yaml
 storage:
   delete:
     enabled: true
@@ -173,7 +173,7 @@ IAM roles allow/deny access to AWS resources. In this context, we use IAM roles 
 
 The role to connect to the registry, attach to the Infra Nodes:
 
-```
+```json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -203,7 +203,7 @@ The role to connect to the registry, attach to the Infra Nodes:
 
 For the cloud provider plugin, attach this role to Masters:
 
-```
+```json
 {
     "Version": "2012-10-17",
     "Statement": [
@@ -244,7 +244,7 @@ For the cloud provider plugin, attach this role to Masters:
 All other nodes need:
 
 
-```
+```json
 {
     "Version": "2012-10-17",
     "Statement": [

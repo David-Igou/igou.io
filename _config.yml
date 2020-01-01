@@ -37,8 +37,9 @@ plainwhite:
 markdown: kramdown
 theme: plainwhite
 plugins:
-  - jekyll-feed
-  - jekyll-seo-tag
+- jekyll-feed
+- jekyll-seo-tag
+- jekyll-code-tabs
 
 # Exclude from processing.
 # The following items will not be processed, by default. Create a custom list

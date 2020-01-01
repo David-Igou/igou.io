@@ -8,9 +8,8 @@ categories:
 
 Some time last year Prometheus became a [technical preview](https://docs.openshift.com/container-platform/3.7/release_notes/ocp_3_7_release_notes.html) for Openshift. That same month I rolled onto a project with some pretty steep architectural layouts of handling metrics. I spent several sprints hacking out of the box features and configurations into Openshift's Prometheus deployment. All of this changed towards the end with the introduction of the [Monitoring Operator](https://github.com/openshift/cluster-monitoring-operator). I'll be writing about that at a later date, I'm still working out some kinks in my home lab.
 
->Prometheus is an open-source systems monitoring and alerting toolkit originally built at SoundCloud. Since its inception in 2012, many companies and organizations have adopted Prometheus, and the project has a very active developer and user community. It is now a standalone open source project and maintained independently of any company. To emphasize this, and to clarify the project's governance structure, Prometheus joined the Cloud Native Computing Foundation in 2016 as the second hosted project, after Kubernetes.
+> Prometheus is an open-source systems monitoring and alerting toolkit originally built at SoundCloud. Since its inception in 2012, many companies and organizations have adopted Prometheus, and the project has a very active developer and user community. It is now a standalone open source project and maintained independently of any company. To emphasize this, and to clarify the project's governance structure, Prometheus joined the Cloud Native Computing Foundation in 2016 as the second hosted project, after Kubernetes.
 
-<!-- more -->
 
 Pretty juicy toolset. Ships with alerting, scales well, and focuses on reliability. There are some caveats consumers need to be aware of, though. In particular certain aspects are left in their responsibility.
 
@@ -30,7 +29,9 @@ There are additional exporters listed [here.](https://prometheus.io/docs/instrum
 
 The Ubuntu package comes as an init.d script so I quickly wrote a Service for Prometheus so I could pass some CLI flags. I didn't bother for the node exporter since it did what I wanted out of the box.
 
-``` text /etc/systemd/system/prometheus.service
+```text 
+/etc/systemd/system/prometheus.service
+
 [Unit]
 Description=Prometheus
 Wants=network-online.target
@@ -51,7 +52,7 @@ WantedBy=multi-user.target
 
 I can fire this up now and expose a port of my choice but it'd be open to the public. Let's instead reverse proxy with HTTPS and password auth. Inside my virtualhost I added:
 
-``` text Virtualhost
+```text
 ProxyPreserveHost On
 ProxyPass /prometheus http://localhost:9090/prometheus
 ProxyPassReverse /prometheus http://localhost:9090/prometheus
@@ -69,7 +70,8 @@ Include /etc/letsencrypt/options-ssl-apache.conf
 ```
 
 Last, let Prometheus know where to find itself to gather metrics on itself.
-``` text /etc/prometheus/prometheus/yml
+
+```text
 scrape_configs:
   # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   - job_name: 'prometheus'

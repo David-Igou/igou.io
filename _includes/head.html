@@ -4,5 +4,33 @@
 <link href="https://fonts.googleapis.com/css?family=Merriweather:300|Raleway:400,700" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css?family=Titillium+Web&display=swap" rel="stylesheet"> 
 <link rel="stylesheet" href="{{ "/assets/css/style.css" | relative_url }}">
+
+ <script>
+   document.addEventListener("DOMContentLoaded", function(){
+     document.getElementById("default").click();
+   });
+
+   function showTab(evt, tabId) {
+     // Declare all variables
+     var i, tabcontent, tablinks;
+
+     // Get all elements with class="tabcontent" and hide them
+     tabcontent = document.getElementsByClassName("tabcontent");
+     for (i = 0; i < tabcontent.length; i++) {
+       tabcontent[i].style.display = "none";
+     }
+
+     // Get all elements with class="tablinks" and remove the class "active"
+     tablinks = document.getElementsByClassName("tablinks");
+     for (i = 0; i < tablinks.length; i++) {
+       tablinks[i].className = tablinks[i].className.replace(" active", "");
+     }
+
+     // Show the current tab, and add an "active" class to the button that opened the tab
+     document.getElementById(tabId).style.display = "block";
+     evt.currentTarget.className += " active";
+   }
+ </script>
+
 <title>{{ page.title | default: site.title }}</title>
 {% seo %}

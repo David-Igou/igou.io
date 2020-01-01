@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Building thie site (again)"
+title: "Building this site (again)"
 date: 2018-10-25 17:32:28 -0400
 comments: true
 categories:
@@ -13,7 +13,7 @@ I literally just kick this off with a shell script to a tiny ec2 instance.
 
 <!-- more -->
 
-``` bash deploy.sh
+```bash
 #!/bin/bash
 pushd octopress && bundle exec rake generate &&
 popd && ansible-playbook -i inventory httpd.yml
