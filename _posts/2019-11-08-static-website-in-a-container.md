@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Running a static website on Kubernetes"
-date: 2019-11-09
+date: 2019-11-08
 categories: [html, static website, kubernetes, cert-manager, k3s, traefik]
 ---
 
