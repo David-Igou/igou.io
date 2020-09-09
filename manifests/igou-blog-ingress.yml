@@ -3,10 +3,10 @@ kind: Ingress
 metadata:
   annotations:
     traefik.ingress.kubernetes.io/redirect-entry-point: https
-  generation: 5
+    ingress.kubernetes.io/whitelist-x-forwarded-for: "true"
   labels:
     igou-app: website
-  name: igou-website
+  name: igou-website-ingress
   namespace: igou
 spec:
   rules:

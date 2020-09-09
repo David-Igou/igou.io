@@ -1,12 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: igou
   name: igou-website
+  namespace: igou
   labels:
     igou-app: website
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       igou-app: website
@@ -29,3 +29,23 @@ spec:
             port: 80
           initialDelaySeconds: 30
           timeoutSeconds: 30
+        volumeMounts:
+        - mountPath: /etc/nginx/conf.d/nginx-status.conf
+          name: nginx-status-conf
+          readOnly: true
+          subPath: nginx.status.conf
+      - name: nginx-exporter
+        image: 'nginx/nginx-prometheus-exporter:0.3.0'
+        args:
+          - '-nginx.scrape-uri=http://localhost:8090/nginx_status'
+        ports:
+          - name: nginx-ex-port
+            containerPort: 9113
+            protocol: TCP
+        imagePullPolicy: Always
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: nginx-status-conf
+        name: nginx-status-conf
+

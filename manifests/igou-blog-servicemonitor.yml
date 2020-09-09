@@ -1,0 +1,12 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: igou
+  namespace: igou
+spec:
+  selector:
+    matchLabels:
+      igou-app: website
+  endpoints:
+  - port: metrics
+    interval: 60s
