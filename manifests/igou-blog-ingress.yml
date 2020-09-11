@@ -2,6 +2,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     traefik.ingress.kubernetes.io/redirect-entry-point: https
     ingress.kubernetes.io/whitelist-x-forwarded-for: "true"
   labels:
@@ -23,4 +24,7 @@ spec:
           serviceName: igou-website
           servicePort: 80
   tls:
-  - secretName: igou-blog-acme-certificate
+  - hosts:
+    - igou.io
+    - www.igou.io
+    secretName: igou-blog-acme-certificate
