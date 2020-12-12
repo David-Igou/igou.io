@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - env:
-        image: quay.io/igou/igou.io-nginx:latest
+        image: quay.io/igou/igou.io:latest
         imagePullPolicy: Always
         name: igou-website
         ports:
