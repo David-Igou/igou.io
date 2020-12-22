@@ -329,6 +329,6 @@ Conclusion: Good speed that easily migrates between nodes. But if I want a pv, I
 
 I guess I should be thankful that I even have options when you compare this to how things were two years ago. The fancy CNCF solutions are cool but the Pi can't really handle them. (yet?)
 
-![](../images/pi_barchart.png)
+![](/images/pi_barchart.png)
 
 I plan on using [nfs-subdir-external-provisioner](https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner) for dynamic NFS, and manual iSCSI for block. Recovery for external storage is just so easy - recreate the volume objects and get on with your life.
