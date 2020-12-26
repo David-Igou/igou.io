@@ -15,6 +15,16 @@ spec:
       labels:
         igou-app: website
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchExpressions:
+              - key: igou-app
+                operator: In
+                values:
+                - website
       containers:
       - env:
         image: quay.io/igou/igou.io:latest
