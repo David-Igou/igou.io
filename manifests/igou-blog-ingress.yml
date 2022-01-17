@@ -17,15 +17,15 @@ spec:
       paths:
       - backend:
           service:
-            Name: igou-website
-            Port: 80
+            name: igou-website
+            port: 80
   - host: www.igou.io
     http:
       paths:
       - backend:
           service:
-            Name: igou-website
-            Port: 80
+            name: igou-website
+            port: 80
   tls:
   - hosts:
     - igou.io
