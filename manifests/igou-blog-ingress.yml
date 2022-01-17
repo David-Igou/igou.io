@@ -10,19 +10,22 @@ metadata:
   name: igou-website-ingress
   namespace: igou
 spec:
+  ingressClassName: external
   rules:
   - host: igou.io
     http:
       paths:
       - backend:
-          serviceName: igou-website
-          servicePort: 80
+          service:
+            Name: igou-website
+            Port: 80
   - host: www.igou.io
     http:
       paths:
       - backend:
-          serviceName: igou-website
-          servicePort: 80
+          service:
+            Name: igou-website
+            Port: 80
   tls:
   - hosts:
     - igou.io
