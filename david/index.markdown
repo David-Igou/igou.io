@@ -7,4 +7,4 @@ sharing: true
 footer: true
 ---
 
-I'm a 27 year old consultant at Red Hat, Inc. I've been working with *nix systems for over 10 years.
+I'm a 29 year old consultant at Red Hat, Inc. I've been working with *nix systems for over 10 years.
