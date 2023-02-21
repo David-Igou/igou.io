@@ -5,3 +5,4 @@ public/
 .sass-cache
 .jekyll-metadata
 do_it_live.sh
+.DS_Store
