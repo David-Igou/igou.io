@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: igou
+resources:
+- https://github.com/igou-io/igou-kubernetes.git/base/networkpolicies/allow-from-ingress
+- https://github.com/igou-io/igou-kubernetes.git/base/networkpolicies/allow-from-monitoring
+- https://github.com/igou-io/igou-kubernetes.git/base/networkpolicies/default-deny
+- igou-blog-deployment.yml
+- igou-blog-ingress.yml
+- igou-blog-namespace.yml
+- igou-blog-nginx-status-conf-configmap.yaml
+- igou-blog-servicemonitor.yml
+- igou-blog-svc.yml

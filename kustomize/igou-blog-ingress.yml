@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/redirect-entry-point: https
+    ingress.kubernetes.io/whitelist-x-forwarded-for: "true"
+  labels:
+    igou-app: website
+  name: igou-website-ingress
+  namespace: igou
+spec:
+  ingressClassName: external
+  rules:
+  - host: igou.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: igou-website
+            port: 
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  - host: www.igou.io
+    http:
+      paths:
+      - backend:
+          service:
+            name: igou-website
+            port: 
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - igou.io
+    - www.igou.io
+    secretName: igou-blog-acme-certificate
