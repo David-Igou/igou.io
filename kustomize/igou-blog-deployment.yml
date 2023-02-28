@@ -45,7 +45,7 @@ spec:
           readOnly: true
           subPath: nginx.status.conf
       - name: nginx-exporter
-        image: 'nginx/nginx-prometheus-exporter:0.10.0'
+        image: 'nginx/nginx-prometheus-exporter:0.11.0'
         args:
           - '-nginx.scrape-uri=http://localhost:8090/nginx_status'
         ports:
