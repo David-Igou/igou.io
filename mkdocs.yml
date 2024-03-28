@@ -1,0 +1,18 @@
+site_name: My Docs
+plugins:
+  - blog
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: blue grey
+      accent: grey
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+    - scheme: default
+      primary: blue grey
+      accent: grey
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
